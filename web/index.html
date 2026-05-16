@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ATP Tennis Database</title>
+    <style>
+        body {
+            font-family: Arial;
+            margin: 40px;
+            background: #f4f4f4;
+        }
+
+        h1 {
+            color: #222;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>🎾 ATP Tennis Database</h1>
+
+<button onclick="loadMatches()">Carica ultimi match</button>
+
+<div id="results"></div>
+
+<script>
+async function loadMatches() {
+    const res = await fetch("http://127.0.0.1:8000/matches/latest?limit=10");
+    const data = await res.json();
+
+    const container = document.getElementById("results");
+    container.innerHTML = "";
+
+    data.forEach(match => {
+        const div = document.createElement("div");
+        div.className = "card";
+
+        div.innerHTML = `
+            <b>${match.winner_name}</b> vs <b>${match.loser_name}</b><br>
+            ${match.tourney_name} - ${match.round}<br>
+            Score: ${match.score}
+        `;
+
+        container.appendChild(div);
+    });
+}
+</script>
+
+</body>
+</html>
