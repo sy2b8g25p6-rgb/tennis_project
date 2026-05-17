@@ -27,7 +27,7 @@ def latest_matches(limit: int = 10):
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT id, tourney_date, winner_name, loser_name, score
+        SELECT id, tourney_date, player_1, player_2, winner, score
         FROM matches
         ORDER BY tourney_date DESC
         LIMIT %s
@@ -55,9 +55,9 @@ def player_matches(name: str, limit: int = 20):
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT id, tourney_date, winner_name, loser_name, score
+        SELECT id, tourney_date, player_1, player_2, winner, score
         FROM matches
-        WHERE winner_name = %s OR loser_name = %s
+        WHERE player_1 = %s OR player_2 = %s
         ORDER BY tourney_date DESC
         LIMIT %s
     """, (name, name, limit))
