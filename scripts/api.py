@@ -1,54 +1,19 @@
-from fastapi import FastAPI
-import sqlite3
 import os
+import psycopg2
+from fastapi import FastAPI
 
 app = FastAPI()
 
-DB_FILE = "atp_tennis.db"
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 
-# -------------------------
-# DATABASE CONNECTION
-# -------------------------
 def get_connection():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return psycopg2.connect(DATABASE_URL)
 
 
-# -------------------------
-# DATABASE INIT (CRUCIAL FOR RENDER)
-# -------------------------
-def init_db():
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS matches (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tourney_name TEXT,
-        tourney_date TEXT,
-        player_1 TEXT,
-        player_2 TEXT,
-        winner TEXT,
-        score TEXT
-    )
-    """)
-
-    conn.commit()
-    conn.close()
-
-
-# inizializza DB all’avvio server
-init_db()
-
-
-# -------------------------
-# API ROUTES
-# -------------------------
 @app.get("/")
 def home():
-    return {"status": "ok", "message": "ATP Tennis API running"}
+    return {"status": "ok", "message": "ATP Tennis API running (PostgreSQL)"}
 
 
 @app.get("/health")
@@ -59,54 +24,55 @@ def health():
 @app.get("/matches/latest")
 def latest_matches(limit: int = 10):
     conn = get_connection()
-    cursor = conn.cursor()
+    cur = conn.cursor()
 
-    cursor.execute("""
-        SELECT * FROM matches
+    cur.execute("""
+        SELECT id, tourney_date, winner_name, loser_name, score
+        FROM matches
         ORDER BY tourney_date DESC
-        LIMIT ?
+        LIMIT %s
     """, (limit,))
 
-    rows = cursor.fetchall()
+    rows = cur.fetchall()
+    cur.close()
     conn.close()
 
-    return [dict(row) for row in rows]
+    return [
+        {
+            "id": r[0],
+            "tourney_date": r[1],
+            "winner_name": r[2],
+            "loser_name": r[3],
+            "score": r[4]
+        }
+        for r in rows
+    ]
 
 
 @app.get("/player/{name}")
 def player_matches(name: str, limit: int = 20):
     conn = get_connection()
-    cursor = conn.cursor()
+    cur = conn.cursor()
 
-    cursor.execute("""
-        SELECT *
+    cur.execute("""
+        SELECT id, tourney_date, winner_name, loser_name, score
         FROM matches
-        WHERE player_1 = ? OR player_2 = ?
+        WHERE winner_name = %s OR loser_name = %s
         ORDER BY tourney_date DESC
-        LIMIT ?
+        LIMIT %s
     """, (name, name, limit))
 
-    rows = cursor.fetchall()
+    rows = cur.fetchall()
+    cur.close()
     conn.close()
 
-    return [dict(row) for row in rows]
-
-
-@app.get("/match/{match_id}")
-def get_match(match_id: int):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT *
-        FROM matches
-        WHERE id = ?
-    """, (match_id,))
-
-    row = cursor.fetchone()
-    conn.close()
-
-    if row is None:
-        return {"error": "match not found"}
-
-    return dict(row)
+    return [
+        {
+            "id": r[0],
+            "tourney_date": r[1],
+            "winner_name": r[2],
+            "loser_name": r[3],
+            "score": r[4]
+        }
+        for r in rows
+    ]
