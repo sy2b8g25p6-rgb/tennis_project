@@ -31,9 +31,10 @@ def home():
 
 @app.get("/health")
 def health():
-    return {"status": "healthy"}
-
-
+    return {
+        "status": "healthy",
+        "db_check": DATABASE_URL is not None
+    }
 # -------------------------
 # LATEST MATCHES (SAFE VERSION)
 # -------------------------
