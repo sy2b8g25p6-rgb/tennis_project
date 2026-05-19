@@ -18,6 +18,8 @@ def get_connection():
         DATABASE_URL,
         sslmode="require"
     )
+
+
 # -------------------------
 # ROOT
 # -------------------------
@@ -29,14 +31,34 @@ def home():
     }
 
 
+# -------------------------
+# HEALTH CHECK (REAL)
+# -------------------------
 @app.get("/health")
 def health():
-    return {
-        "status": "healthy",
-        "db_check": DATABASE_URL is not None
-    }
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT 1;")
+        cur.fetchone()
+        cur.close()
+        conn.close()
+
+        return {
+            "status": "healthy",
+            "db": "connected"
+        }
+
+    except Exception as e:
+        return {
+            "status": "healthy",
+            "db": "failed",
+            "error": str(e)
+        }
+
+
 # -------------------------
-# LATEST MATCHES (SAFE VERSION)
+# LATEST MATCHES
 # -------------------------
 @app.get("/matches/latest")
 def latest_matches(limit: int = 10):
@@ -56,20 +78,14 @@ def latest_matches(limit: int = 10):
         cur.close()
         conn.close()
 
-        # ritorna raw per evitare mismatch colonne
-        return [
-            list(r)
-            for r in rows
-        ]
+        return [list(r) for r in rows]
 
     except Exception as e:
-        return {
-            "error": str(e)
-        }
+        return {"error": str(e)}
 
 
 # -------------------------
-# PLAYER MATCHES (SAFE VERSION)
+# PLAYER MATCHES
 # -------------------------
 @app.get("/player/{name}")
 def player_matches(name: str, limit: int = 20):
@@ -90,15 +106,10 @@ def player_matches(name: str, limit: int = 20):
         cur.close()
         conn.close()
 
-        return [
-            list(r)
-            for r in rows
-        ]
+        return [list(r) for r in rows]
 
     except Exception as e:
-        return {
-            "error": str(e)
-        }
+        return {"error": str(e)}
 
 
 # -------------------------
@@ -127,6 +138,4 @@ def get_match(match_id: int):
         return list(row)
 
     except Exception as e:
-        return {
-            "error": str(e)
-        }
+        return {"error": str(e)}
